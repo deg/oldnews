@@ -11,12 +11,20 @@
 ;; Views
 
 (defn home-page []
-  [:div [:h2 "Welcome to oldnews"]
-   [:div [:a {:href "#/about"} "go to about page"]]])
+  [:div [:h2 "Old News browser"]
+   [:div [:p "Tomorrow's way to see yesterday today"]]
+   [:div [:a {:href "#/about"} "go to about page"]]
+   [:div [:a {:href "#/debug"} "See internal app state"]]])
 
 (defn about-page []
-  [:div [:h2 "About oldnews"]
-   [:div [:a {:href "#/"} "go to the home page"]]])
+  [:div [:h2 "About Old News"]
+   [:div [:a {:href "#/"} "go to the home page"]]
+   [:div [:a {:href "#/debug"} "See internal app state"]]])
+
+(defn debug-page []
+  [:div [:h2 "App state"]
+   [:div [:a {:href "#/"} "go to the home page"]]
+   [:div [:a {:href "#/about"} "go to about page"]]])
 
 (defn current-page []
   [:div [(session/get :current-page)]])
@@ -30,6 +38,9 @@
 
 (secretary/defroute "/about" []
   (session/put! :current-page #'about-page))
+
+(secretary/defroute "/debug" []
+  (session/put! :current-page #'debug-page))
 
 ;; -------------------------
 ;; History
