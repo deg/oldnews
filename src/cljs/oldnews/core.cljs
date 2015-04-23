@@ -1,10 +1,12 @@
 (ns oldnews.core
-    (:require [reagent.core :as reagent :refer [atom]]
+    (:require [clojure.string :as str]
+              [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
               [secretary.core :as secretary :include-macros true]
               [goog.events :as events]
               [goog.history.EventType :as EventType]
-              [cljsjs.react :as react])
+              [cljsjs.react :as react]
+              [ajax.core :refer [GET POST]])
     (:import goog.History))
 
 ;; -------------------------
@@ -33,11 +35,39 @@
 (defn search-input [state-id]
   (input-element state-id "searchVal" "text"))
 
+(defn handler [response]
+  (let [{:keys [totalItems items]} response
+        item-data (map #(-> %
+                            (select-keys [:city :date :title :url :id])
+                            (clojure.set/rename-keys {:id :key}))
+                       items)]
+    (set-state! :num-results totalItems)
+    (set-state! :results item-data)))
+
+(defn error-handler [{:keys [status status-text]}]
+  (.log js/console (str "something bad happened: " status " " status-text)))
+
 (defn launch-search []
-  (let [search-string (get-state :text1)]
-    (set-state! :current-search-string search-string))
-  nil
-  )
+  (let [search-string (get-state :text1)
+        base "http://chroniclingamerica.loc.gov/search/pages/results/?"
+        text (str "proxtext=" search-string)
+        filter "&dateFilterType=yearRange&date1=1800&date2=1930&format=json"]
+    (set-state! :current-search-string search-string)
+    (set-state! :num-results 0)
+    (set-state! :results nil)
+    (GET (str base text filter)
+        {:keywords? true
+         :response-format :json
+         :handler handler
+         :error-handler error-handler})))
+
+(defn result-row [{:keys [city date title url]}]
+  [:div
+   [:b (if (vector? city) (first city) city)]
+   " "
+   [:it date]
+   " "
+   [:a {:href url} title]])
 
 (defn home-page []
   (fn []
@@ -57,9 +87,13 @@
                  :on-click launch-search}
         "Search now"]]
      ;;]
-     [:div {:id "status"}
-      [:em "Searching for " (get-state :current-search-string)]
-      ]
+
+     (let [string (get-state :current-search-string)]
+       (if (str/blank? string)
+         [:div]
+         [:div {:id "status"}
+          [:em "Searching for " string]
+          (map (fn [row] [result-row row]) (get-state :results))]))
      [:div [:a {:href "#/about"} "go to about page"]]
      [:div [:a {:href "#/debug"} "See internal app state"]]]))
 
