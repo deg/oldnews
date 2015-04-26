@@ -41,12 +41,14 @@
                             (select-keys [:city :date :title :url :id])
                             (clojure.set/rename-keys {:id :key}))
                        items)]
-    (set-state! :searching false)
     (set-state! :num-results totalItems)
     (set-state! :results item-data)))
 
 (defn error-handler [{:keys [status status-text]}]
   (.log js/console (str "something bad happened: " status " " status-text)))
+
+(defn finalize-search []
+  (set-state! :searching false))
 
 (defn launch-search []
   (let [search-string (get-state :text1)
@@ -61,7 +63,9 @@
         {:keywords? true
          :response-format :json
          :handler handler
-         :error-handler error-handler})))
+         :error-handler error-handler
+         :finally finalize-search})))
+
 
 (defn result-row [{:keys [city date title url]}]
   [:div
