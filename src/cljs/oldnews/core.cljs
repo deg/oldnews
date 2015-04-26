@@ -5,7 +5,10 @@
               [goog.events :as events]
               [goog.history.EventType :as EventType]
               [cljsjs.react :as react]
-              [oldnews.state :refer [sget sset!]])
+              [oldnews.state :refer [sget sset!]]
+              [oldnews.pages.home :as home]
+              [oldnews.pages.about :as about]
+              [oldnews.pages.debug :as debug])
     (:import goog.History))
 
 
@@ -14,9 +17,9 @@
 
 ;; Routes
 (secretary/set-config! :prefix "#")
-(secretary/defroute "/"      [] (session/put! :current-page #'oldnews.pages.home/page))
-(secretary/defroute "/about" [] (session/put! :current-page #'oldnews.pages.about/page))
-(secretary/defroute "/debug" [] (session/put! :current-page #'oldnews.pages.debug/page))
+(secretary/defroute "/"      [] (session/put! :current-page #'home/page))
+(secretary/defroute "/about" [] (session/put! :current-page #'about/page))
+(secretary/defroute "/debug" [] (session/put! :current-page #'debug/page))
 
 
 ;; History

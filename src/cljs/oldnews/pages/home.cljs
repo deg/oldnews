@@ -13,6 +13,7 @@
 
 (ns oldnews.pages.home
   (:require [clojure.string :as str]
+            [clojure.set :as set]
             [oldnews.state :refer [sget sset!]]
             [oldnews.ajax :refer [get-url]]))
 
@@ -57,7 +58,7 @@
   (let [{:keys [totalItems items]} response
         item-data (map #(-> %
                             (select-keys [:city :date :title :url :id])
-                            (clojure.set/rename-keys {:id :key}))
+                            (set/rename-keys {:id :key}))
                        items)]
     (sset! :num-results totalItems)
     (sset! :results item-data)))
