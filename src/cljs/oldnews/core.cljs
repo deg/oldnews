@@ -41,6 +41,7 @@
                             (select-keys [:city :date :title :url :id])
                             (clojure.set/rename-keys {:id :key}))
                        items)]
+    (set-state! :searching false)
     (set-state! :num-results totalItems)
     (set-state! :results item-data)))
 
@@ -55,6 +56,7 @@
     (set-state! :current-search-string search-string)
     (set-state! :num-results 0)
     (set-state! :results nil)
+    (set-state! :searching true)
     (GET (str base text filter)
         {:keywords? true
          :response-format :json
@@ -88,12 +90,16 @@
         "Search now"]]
      ;;]
 
-     (let [string (get-state :current-search-string)]
-       (if (str/blank? string)
-         [:div]
-         [:div {:id "status"}
-          [:em "Searching for " string]
-          (map (fn [row] [result-row row]) (get-state :results))]))
+     (let [search-string (get-state :current-search-string)
+           search-results (get-state :results)]
+       [:div
+        (if (get-state :searching)
+          [:div {:id "searching"}
+           [:em "Searching for " search-string]]
+          [:div])
+        (if (str/blank? search-results)
+          [:div]
+          (map (fn [row] [result-row row]) (get-state :results)))])
      [:div [:a {:href "#/about"} "go to about page"]]
      [:div [:a {:href "#/debug"} "See internal app state"]]]))
 
