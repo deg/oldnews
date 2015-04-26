@@ -59,7 +59,8 @@
                                   [weasel "0.6.0"]
                                   [com.cemerick/piggieback "0.2.0"]
                                   [org.clojure/tools.nrepl "0.2.10"]
-                                  [pjstadig/humane-test-output "0.7.0"]]
+                                  [pjstadig/humane-test-output "0.7.0"]
+                                  [json-html "0.2.8"]]
 
                    :source-paths ["env/dev/clj"]
                    :plugins [[lein-figwheel "0.2.5"]]
@@ -76,9 +77,7 @@
 
                    :cljsbuild {:builds {:app {:source-paths ["env/dev/cljs"]
                                               :compiler {:main "oldnews.dev"
-                                                         :source-map true}}
-}
-}}
+                                                         :source-map true}}}}}
 
              :uberjar {:hooks [leiningen.cljsbuild minify-assets.plugin/hooks]
                        :env {:production true}
