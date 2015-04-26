@@ -66,12 +66,20 @@
          :error-handler error-handler
          :finally finalize-search})))
 
+(defn format-loc-date [date-string]
+  (let [all (str/trim date-string)
+        year (subs all 0 4)
+        month-num (subs all 4 6)
+        month (["" "Jan" "Feb" "Mar" "Apr" "May" "Jun"
+                "Jul" "Aug" "Sep" "Oct" "Nov" "Dec"] month-num)
+        date (subs all 6 8)]
+    [:span month " " date ", " year]))
 
 (defn result-row [{:keys [city date title url]}]
   [:div
    [:b (if (vector? city) (first city) city)]
    " "
-   [:it date]
+   [:em (format-loc-date date)]
    " "
    [:a {:href url} title]])
 
