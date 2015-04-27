@@ -57,7 +57,7 @@
                         title)
           title-with-pagenum (str clean-title ", p" sequence)]
       (if pdf
-        [:a {:href pdf} title-with-pagenum]
+        [:a {:href pdf :target "_blank"} title-with-pagenum]
         title-with-pagenum))])
 
 
