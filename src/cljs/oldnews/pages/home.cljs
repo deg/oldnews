@@ -51,14 +51,14 @@
    " "
    [:em (str/join ", " city)]
    " "
-    (let [rpos (-> title count dec)
-          clean-title (if (= (get title rpos) ".")
-                        (subs title 0 rpos)
-                        title)
-          title-with-pagenum (str clean-title ", p" sequence)]
-      (if pdf
-        [:a {:href pdf :target "_blank"} title-with-pagenum]
-        title-with-pagenum))])
+   (let [rpos (-> title count dec)
+         clean-title (if (= (get title rpos) ".")
+                       (subs title 0 rpos)
+                       title)
+         title-with-pagenum (str clean-title ", p" sequence)]
+     (if pdf
+       [:a {:href pdf :target "_blank"} title-with-pagenum]
+       title-with-pagenum))])
 
 
 (defn handle-page-data-results [key response]
@@ -72,7 +72,6 @@
                             (set/rename-keys {:id :key}))
                        items)]
     (sset! [:num-results] totalItems)
-    ;; (sset! [:results] (vec item-data))
     ;; Enable full-results when needing to explore the entire response
     ;; (sset! [:full-results] response)
     (dorun (map
