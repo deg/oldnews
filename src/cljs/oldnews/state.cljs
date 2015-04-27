@@ -21,8 +21,23 @@
 
 (defonce the-state (atom nil))
 
-(defn sset! [key value]
-  (swap! the-state assoc key value))
+(defn sset! [keys value]
+  (swap! the-state assoc-in keys value))
+
+(defn sadd! [key value]
+  (swap! the-state
+         (fn [root]
+           (let [old (key root)]
+             (assoc root key
+                    (if (set? old)
+                      (conj old value)
+                      (hash-set value)))))))
+
+(defn sremove! [key value]
+  (swap! the-state
+         (fn [root]
+           (assoc root key (disj (key root) value)))))
+
 
 (defn sget [key]
   (key @the-state))

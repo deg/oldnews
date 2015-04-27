@@ -23,6 +23,6 @@
 
 (defn page []
   [:div [:h2 "App state"]
-   (render-all-state the-state)
    [:div [:a {:href "#/"} "go to the home page"]]
-   [:div [:a {:href "#/about"} "go to about page"]]])
+   [:div [:a {:href "#/about"} "go to about page"]]
+   (render-all-state the-state)])

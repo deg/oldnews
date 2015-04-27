@@ -13,18 +13,18 @@
 
 (ns oldnews.ajax
   (:require [ajax.core :refer [GET POST]]
-            [oldnews.state :refer [sget sset!]]))
+            [oldnews.state :refer [sget sset! sadd! sremove!]]))
 
 
 (defn error-handler [{:keys [status status-text]}]
   (.log js/console (str "something bad happened: " status " " status-text)))
 
 
-(defn get-url [url handler searching-flag]
-  (sset! searching-flag true)
+(defn get-url [url handler search-key]
+  (sadd! :searching search-key)
   (GET url {:response-format :json
             :keywords? true
             :handler handler
             :error-handler error-handler
-            :finally #(sset! searching-flag false)
+            :finally #(sremove! :searching search-key)
             }))

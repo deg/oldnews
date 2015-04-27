@@ -27,7 +27,7 @@
            :type type
            :required ""
            :value (sget id)
-           :on-change #(sset! id (-> % .-target .-value))}])
+           :on-change #(sset! [id] (-> % .-target .-value))}])
 
 
 (defn search-input [state-id]
@@ -45,23 +45,44 @@
 
 
 
-(defn result-row [{:keys [city date title url]}]
+(defn result-row [{:keys [city date title pdf sequence]}]
   [:div
-   [:b (if (vector? city) (first city) city)]
+   [:b (format-loc-date date)]
    " "
-   [:em (format-loc-date date)]
+   [:em (str/join ", " city)]
    " "
-   [:a {:href url} title]])
+    (let [rpos (-> title count dec)
+          clean-title (if (= (get title rpos) ".")
+                        (subs title 0 rpos)
+                        title)
+          title-with-pagenum (str clean-title ", p" sequence)]
+      (if pdf
+        [:a {:href pdf} title-with-pagenum]
+        title-with-pagenum))])
 
 
-(defn handler [response]
+(defn handle-page-data-results [key response]
+  (sset! [:results key :pdf] (:pdf response)))
+
+
+(defn handle-set-of-search-results [response]
   (let [{:keys [totalItems items]} response
         item-data (map #(-> %
-                            (select-keys [:city :date :title :url :id])
+                            (select-keys [:id :title :sequence :date :city :url])
                             (set/rename-keys {:id :key}))
                        items)]
-    (sset! :num-results totalItems)
-    (sset! :results item-data)))
+    (sset! [:num-results] totalItems)
+    ;; (sset! [:results] (vec item-data))
+    ;; Enable full-results when needing to explore the entire response
+    ;; (sset! [:full-results] response)
+    (dorun (map
+            (fn [{:keys [key url] :as full-item}]
+              (sset! [:results key] full-item)
+              (get-url url
+                       (fn [response]
+                         (handle-page-data-results key response))
+                       key))
+            item-data))))
 
 
 (defn launch-search []
@@ -69,11 +90,11 @@
         base "http://chroniclingamerica.loc.gov/search/pages/results/?"
         text (str "proxtext=" search-string)
         filter "&dateFilterType=yearRange&date1=1800&date2=1930&format=json"]
-    (sset! :current-search-string search-string)
-    (sset! :num-results 0)
-    (sset! :results nil)
-    (sset! :searching true)
-    (get-url (str base text filter) handler :searching)))
+    (sset! [:current-search-string] search-string)
+    (sset! [:num-results] 0)
+    (sset! [:results] nil)
+    (sset! [:searching] true)
+    (get-url (str base text filter) handle-set-of-search-results search-string)))
 
 
 (defn page []
@@ -98,12 +119,13 @@
      (let [search-string (sget :current-search-string)
            search-results (sget :results)]
        [:div
-        (if (sget :searching)
-          [:div {:id "searching"}
-           [:em "Searching for " search-string]]
-          [:div])
+        (let [open-searches (sget :searching)]
+          (if (empty? open-searches)
+            [:div]
+            [:div {:id "searching"}
+             [:em "Searching now for " search-string " (" (count open-searches) " pending)"]]))
         (if (str/blank? search-results)
           [:div]
-          (map (fn [row] [result-row row]) (sget :results)))])
+          (map (fn [[_ row]] [result-row row]) search-results))])
      [:div [:a {:href "#/about"} "go to about page"]]
      [:div [:a {:href "#/debug"} "See internal app state"]]]))
