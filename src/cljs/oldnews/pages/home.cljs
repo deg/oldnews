@@ -84,13 +84,16 @@
 
 (defn launch-search []
   (let [search-string (state/getval [:forms :search :search-string])
-        search-url (-> (url "http://chroniclingamerica.loc.gov/search/pages/results/?")
+        ;; Work around https://github.com/cemerick/url/issues/9
+        fix-endslash #(assoc % :path (str (:path %) "/"))
+        search-url (-> (url "http://chroniclingamerica.loc.gov/search/pages/results/")
                        (assoc :query {:proxtext search-string
                                       :page (or (state/getval [:page-number]) 1)
                                       :dateFilterType "yearRange"
                                       :date1 "1800"
                                       :date2 "1930"
                                       :format "json"})
+                       fix-endslash
                        str)]
     (clear-search-results)
     (state/set! [:searching] true)
