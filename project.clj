@@ -58,6 +58,7 @@
                                   [figwheel "0.2.6"]
                                   [weasel "0.6.0"]
                                   [com.cemerick/piggieback "0.2.0"]
+                                  [com.cemerick/url "0.1.1"]
                                   [org.clojure/tools.nrepl "0.2.10"]
                                   [pjstadig/humane-test-output "0.7.0"]
                                   [json-html "0.2.8"]]

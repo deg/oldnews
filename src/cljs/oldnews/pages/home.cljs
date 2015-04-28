@@ -14,6 +14,7 @@
 (ns oldnews.pages.home
   (:require [clojure.string :as str]
             [clojure.set :as set]
+            [cemerick.url :refer [url-encode]]
             [oldnews.state :refer [sget sset!]]
             [oldnews.ajax :refer [get-url]]))
 
@@ -45,19 +46,21 @@
 
 
 
-(defn result-row [{:keys [city date title pdf sequence]}]
+(defn result-row [{:keys [search-string city date title pdf sequence]}]
   [:div
    [:b (format-loc-date date)]
    " "
    [:em (str/join ", " city)]
    " "
-   (let [rpos (-> title count dec)
-         clean-title (if (= (get title rpos) ".")
-                       (subs title 0 rpos)
+   (let [last-char (-> title count dec)
+         clean-title (if (= (get title last-char) ".")
+                       (subs title 0 last-char)
                        title)
          title-with-pagenum (str clean-title ", p" sequence)]
      (if pdf
-       [:a {:href pdf :target "_blank"} title-with-pagenum]
+       [:a {:href (str pdf "#search=" (url-encode search-string))
+            :target "_blank"}
+        title-with-pagenum]
        title-with-pagenum))])
 
 
@@ -65,11 +68,12 @@
   (sset! [:results key :pdf] (:pdf response)))
 
 
-(defn handle-set-of-search-results [response]
+(defn handle-set-of-search-results [search-string response]
   (let [{:keys [totalItems items]} response
         item-data (map #(-> %
                             (select-keys [:id :title :sequence :date :city :url])
-                            (set/rename-keys {:id :key}))
+                            (set/rename-keys {:id :key})
+                            (assoc :search-string search-string))
                        items)]
     (sset! [:num-results] totalItems)
     ;; Enable full-results when needing to explore the entire response
@@ -89,11 +93,13 @@
         base "http://chroniclingamerica.loc.gov/search/pages/results/?"
         text (str "proxtext=" search-string)
         filter "&dateFilterType=yearRange&date1=1800&date2=1930&format=json"]
-    (sset! [:current-search-string] search-string)
     (sset! [:num-results] 0)
     (sset! [:results] nil)
     (sset! [:searching] true)
-    (get-url (str base text filter) handle-set-of-search-results search-string)))
+    (get-url (str base text filter)
+             (fn [response]
+               (handle-set-of-search-results search-string response))
+             search-string)))
 
 
 (defn page []
@@ -115,14 +121,13 @@
         "Search now"]]
      ;;]
 
-     (let [search-string (sget :current-search-string)
-           search-results (sget :results)]
+     (let [search-results (sget :results)]
        [:div
         (let [open-searches (sget :searching)]
           (if (empty? open-searches)
             [:div]
             [:div {:id "searching"}
-             [:em "Searching now for " search-string " (" (count open-searches) " pending)"]]))
+             [:em "Searching: (" (count open-searches) " pending)"]]))
         (if (str/blank? search-results)
           [:div]
           (map (fn [[_ row]] [result-row row]) search-results))])
