@@ -13,7 +13,7 @@
 
 (ns oldnews.pages.about
   (:require [clojure.string :as str]
-            [oldnews.state :refer [sget sset!]]))
+            [oldnews.state :as state]))
 
 
 (defn page []

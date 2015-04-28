@@ -15,24 +15,9 @@
   (:require [clojure.string :as str]
             [clojure.set :as set]
             [cemerick.url :refer [url-encode]]
-            [oldnews.state :refer [sget sset!]]
+            [reagent-forms.core :refer [bind-fields init-field value-of]]
+            [oldnews.state :as state]
             [oldnews.ajax :refer [get-url]]))
-
-
-(defn input-element
-  "An input element which updates its value on change"
-  [id name type]
-  [:input {:id id
-           :name name
-           :class "form-control"
-           :type type
-           :required ""
-           :value (sget id)
-           :on-change #(sset! [id] (-> % .-target .-value))}])
-
-
-(defn search-input [state-id]
-  (input-element state-id "searchVal" "text"))
 
 
 (defn format-loc-date [date-string]
@@ -65,22 +50,24 @@
 
 
 (defn handle-page-data-results [key response]
-  (sset! [:results key :pdf] (:pdf response)))
+  (state/set! [:results key :pdf] (:pdf response)))
 
 
 (defn handle-set-of-search-results [search-string response]
-  (let [{:keys [totalItems items]} response
+  (let [{:keys [totalItems endIndex startIndex itemsPerPage items]} response
         item-data (map #(-> %
                             (select-keys [:id :title :sequence :date :city :url])
                             (set/rename-keys {:id :key})
                             (assoc :search-string search-string))
                        items)]
-    (sset! [:num-results] totalItems)
+    (state/set! [:num-results] totalItems)
+    (state/set! [:start-index] startIndex)
+    (state/set! [:end-index] endIndex)
     ;; Enable full-results when needing to explore the entire response
-    ;; (sset! [:full-results] response)
+    ;; (state/set! [:full-results] response)
     (dorun (map
             (fn [{:keys [key url] :as full-item}]
-              (sset! [:results key] full-item)
+              (state/set! [:results key] full-item)
               (get-url url
                        (fn [response]
                          (handle-page-data-results key response))
@@ -89,21 +76,41 @@
 
 
 (defn launch-search []
-  (let [search-string (sget :text1)
+  (let [search-string (state/getval [:forms :search :search-string])
         base "http://chroniclingamerica.loc.gov/search/pages/results/?"
         text (str "proxtext=" search-string)
-        filter "&dateFilterType=yearRange&date1=1800&date2=1930&format=json"]
-    (sset! [:num-results] 0)
-    (sset! [:results] nil)
-    (sset! [:searching] true)
+        filter (str "&dateFilterType=yearRange&date1=1800&date2=1930&format=json&page=" (or (state/getval [:page-number]) 1))]
+    (state/set! [:num-results] 0)
+    (state/set! [:results] nil)
+    (state/set! [:searching] true)
     (get-url (str base text filter)
              (fn [response]
                (handle-set-of-search-results search-string response))
              search-string)))
 
-(defn button [text id on-click]
+(defn goto-page [n]
+  (state/set! [:page-number] n)
+  (launch-search))
+
+(defn prev-page []
+  (state/inc! [:page-number] -1 1 1 (-> [:num-results] state/getval (/ 20) Math.ceil))
+  (launch-search))
+
+
+(defn next-page []
+  (state/inc! [:page-number] 1 1 1 (-> [:num-results] state/getval (/ 20) Math.ceil))
+  (launch-search))
+
+
+(defn row [label input]
+  [:div.row
+   [:div.col-md-2 [:label label]]
+   [:div.col-md-5 input]])
+
+
+(defn button [bootstrap-class text id on-click]
   [:button {:type "submit"
-            :class "btn btn-default"
+            :class (str "btn " bootstrap-class)
             :id id
             :on-click on-click}
    text])
@@ -125,36 +132,60 @@
              text]))
         (partition 2 values-and-texts))])
 
-(defn page []
-  (fn []
-    [:div [:h2 "Old News browser"]
-     [:div [:p "Tomorrow's way to see yesterday today"]]
-     ;; [TODO] Understand why form causes page refresh. Seems to be related
-     ;; to it adding search string as a param to the page URL
-     ;;[:form
-      [:fieldset
-       [:legend "Search for some good news"]
-       [:label {:for :text1} "Enter text: "]
-       [search-input :text1]
-       [button "Search now" :search launch-search]
-       [:br]
-       [button "Prev page" :search launch-search]
-       [button "Next page" :search launch-search]
-       [:br]
-       [select "sort-order" :relevance
-        [:date "Date"
-         :relevance "Relevance"]]]
-     ;;]
+;; ===
 
-     (let [search-results (sget :results)]
-       [:div
-        (let [open-searches (sget :searching)]
-          (if (empty? open-searches)
+
+(defn xradio [label name value]
+  [:div.radio
+   [:label
+    [:input {:field :radio :name name :value value}]
+    label]])
+
+(defn input [label type id]
+  (row label [:input.form-control {:field type :id id}]))
+
+(def form-template
+  [:div
+   [:fieldset
+    [:legend "Search for some good news"]
+    (input "Search for" :text :search-string)
+    [button "btn-primary" "Search now" :search (fn [] (goto-page 1))]
+    [:br]
+    [button "btn-default" "Prev page" :search prev-page]
+    [button "btn-default" "Next page" :search next-page]
+    [:br]
+    [select "sort-order" :relevance
+     [:date "Date"
+      :relevance "Relevance"]]]])
+
+(defn page []
+  (let [search-form-cursor (state/cursor [:forms :search])]
+    (fn []
+      [:div [:h2 "Old News browser"]
+       [:div [:h3 "Tomorrow's way to see yesterday today"]]
+       ;; [TODO] Understand why form causes page refresh. Seems to be related
+       ;; to it adding search string as a param to the page URL
+       ;;[:form
+       [:div [bind-fields form-template search-form-cursor]]
+       ;;]
+
+       (let [search-results (state/getval [:results])]
+         [:div
+          (let [open-searches (state/getval [:searching])]
+            (if (empty? open-searches)
+              [:div]
+              [:div {:id "searching"}
+               [:em "Searching: (" (count open-searches) " pending)"]]))
+          (if (str/blank? search-results)
             [:div]
-            [:div {:id "searching"}
-             [:em "Searching: (" (count open-searches) " pending)"]]))
-        (if (str/blank? search-results)
-          [:div]
-          (map (fn [[_ row]] [result-row row]) search-results))])
-     [:div [:a {:href "#/about"} "go to about page"]]
-     [:div [:a {:href "#/debug"} "See internal app state"]]]))
+            [:div
+             [:h5 "Results "
+              (state/getval [:start-index])
+              "-"
+              (state/getval [:end-index])
+              " of "
+              (state/getval [:num-results])
+              ]
+             (map (fn [[_ row]] [result-row row]) search-results)])])
+       [:div [:a {:href "#/about"} "go to about page"]]
+       [:div [:a {:href "#/debug"} "See internal app state"]]])))

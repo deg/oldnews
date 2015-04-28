@@ -17,14 +17,19 @@
 ;;; [TODO] Tools to inspect the state.
 
 (ns oldnews.state
-  (:require [reagent.core :refer [atom]]))
+  (:require [reagent.core :as r]))
 
-(defonce the-state (atom nil))
+(defonce the-state (r/atom nil))
 
-(defn sset! [keys value]
+(defn set! [keys value]
   (swap! the-state assoc-in keys value))
 
-(defn sadd! [key value]
+(defn getval [keys]
+  (get-in @the-state keys))
+
+
+;; [TODO] sadd! and sremove! don't yet handle nested keys
+(defn append! [key value]
   (swap! the-state
          (fn [root]
            (let [old (key root)]
@@ -33,11 +38,19 @@
                       (conj old value)
                       (hash-set value)))))))
 
-(defn sremove! [key value]
+(defn remove! [key value]
   (swap! the-state
          (fn [root]
            (assoc root key (disj (key root) value)))))
 
 
-(defn sget [key]
-  (key @the-state))
+(defn cursor [keys]
+  (r/cursor the-state keys))
+
+
+(defn inc! [keys increment default minval maxval]
+  (swap! the-state
+         (fn [root]
+           (let [old (get-in root keys)
+                 new (->> (or old default) (+ increment) (min maxval) (max minval))]
+             (assoc-in root keys new)))))

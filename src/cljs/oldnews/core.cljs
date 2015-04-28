@@ -5,7 +5,6 @@
               [goog.events :as events]
               [goog.history.EventType :as EventType]
               [cljsjs.react :as react]
-              [oldnews.state :refer [sget sset!]]
               [oldnews.pages.home :as home]
               [oldnews.pages.about :as about]
               [oldnews.pages.debug :as debug])

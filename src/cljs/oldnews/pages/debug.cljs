@@ -14,7 +14,7 @@
 (ns oldnews.pages.debug
   (:require [clojure.string :as str]
             [json-html.core :refer [edn->html edn->hiccup]]
-            [oldnews.state :refer [sget sset! the-state]]))
+            [oldnews.state :as state]))
 
 
 (defn render-all-state [root]
@@ -25,4 +25,4 @@
   [:div [:h2 "App state"]
    [:div [:a {:href "#/"} "go to the home page"]]
    [:div [:a {:href "#/about"} "go to about page"]]
-   (render-all-state the-state)])
+   (render-all-state state/the-state)])

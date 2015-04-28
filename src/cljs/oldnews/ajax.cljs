@@ -13,7 +13,7 @@
 
 (ns oldnews.ajax
   (:require [ajax.core :refer [GET POST]]
-            [oldnews.state :refer [sget sset! sadd! sremove!]]))
+            [oldnews.state :as state]))
 
 
 (defn error-handler [{:keys [status status-text]}]
@@ -21,10 +21,10 @@
 
 
 (defn get-url [url handler search-key]
-  (sadd! :searching search-key)
+  (state/append! :searching search-key)
   (GET url {:response-format :json
             :keywords? true
             :handler handler
             :error-handler error-handler
-            :finally #(sremove! :searching search-key)
+            :finally #(state/remove! :searching search-key)
             }))
