@@ -143,12 +143,9 @@
 
 ;; [TODO] convert to use reagent.forms
 (defn select [name default values-and-texts]
-  [:select {:name name}
+  [:select {:name name :value default}
    (map (fn [[value text]]
-          (let [props {:value value}]
-            [:option
-             (if (= value default) (assoc props :selected "selected") props)
-             text]))
+          [:option {:value value :key value} text])
         (partition 2 values-and-texts))])
 
 
