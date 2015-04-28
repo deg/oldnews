@@ -14,7 +14,7 @@
 (ns oldnews.pages.home
   (:require [clojure.string :as str]
             [clojure.set :as set]
-            [cemerick.url :refer [url-encode]]
+            [cemerick.url :refer [url url-encode]]
             [reagent-forms.core :refer [bind-fields init-field value-of]]
             [oldnews.state :as state]
             [oldnews.ajax :refer [get-url]]))
@@ -74,18 +74,28 @@
                        key))
             item-data))))
 
+(defn clear-search-results []
+  (state/set! [:num-results] 0)
+  (state/set! [:results] nil)
+  (state/set! [:start-index] nil)
+  (state/set! [:end-index] nil))
+
+
 
 (defn launch-search []
   (let [search-string (state/getval [:forms :search :search-string])
-        base "http://chroniclingamerica.loc.gov/search/pages/results/?"
-        text (str "proxtext=" search-string)
-        filter (str "&dateFilterType=yearRange&date1=1800&date2=1930&format=json&page=" (or (state/getval [:page-number]) 1))]
-    (state/set! [:num-results] 0)
-    (state/set! [:results] nil)
+        search-url (-> (url "http://chroniclingamerica.loc.gov/search/pages/results/?")
+                       (assoc :query {:proxtext search-string
+                                      :page (or (state/getval [:page-number]) 1)
+                                      :dateFilterType "yearRange"
+                                      :date1 "1800"
+                                      :date2 "1930"
+                                      :format "json"})
+                       str)]
+    (clear-search-results)
     (state/set! [:searching] true)
-    (get-url (str base text filter)
-             (fn [response]
-               (handle-set-of-search-results search-string response))
+    (get-url search-url (fn [response]
+                          (handle-set-of-search-results search-string response))
              search-string)))
 
 (defn goto-page [n]
@@ -102,12 +112,6 @@
   (launch-search))
 
 
-(defn row [label input]
-  [:div.row
-   [:div.col-md-2 [:label label]]
-   [:div.col-md-5 input]])
-
-
 (defn button [bootstrap-class text id on-click]
   [:button {:type "submit"
             :class (str "btn " bootstrap-class)
@@ -115,6 +119,17 @@
             :on-click on-click}
    text])
 
+
+(defn row [label input]
+  [:div.row
+   [:div.col-md-2 [:label label]]
+   [:div.col-md-5 input]])
+
+(defn input [label type id]
+  (row label [:input.form-control {:field type :id id}]))
+
+
+;; [TODO] convert to use reagent.forms
 (defn radio [name default values-and-texts]
   [:div (map (fn [[value text]]
                (let [props {:type "radio" :name name :value value}]
@@ -123,6 +138,7 @@
                   text]))
              (partition 2 values-and-texts))])
 
+;; [TODO] convert to use reagent.forms
 (defn select [name default values-and-texts]
   [:select {:name name}
    (map (fn [[value text]]
@@ -132,17 +148,13 @@
              text]))
         (partition 2 values-and-texts))])
 
-;; ===
 
-
+;; [TODO] Merge with radio, above
 (defn xradio [label name value]
   [:div.radio
    [:label
     [:input {:field :radio :name name :value value}]
     label]])
-
-(defn input [label type id]
-  (row label [:input.form-control {:field type :id id}]))
 
 (def form-template
   [:div
