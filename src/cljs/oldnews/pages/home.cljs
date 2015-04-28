@@ -187,12 +187,10 @@
        (let [search-results (state/getval [:results])]
          [:div
           (let [open-searches (state/getval [:searching])]
-            (if (empty? open-searches)
-              [:div]
+            (when-not (empty? open-searches)
               [:div {:id "searching"}
                [:em "Searching: (" (count open-searches) " pending)"]]))
-          (if (str/blank? search-results)
-            [:div]
+          (when-not (str/blank? search-results)
             [:div
              [:h5 "Results "
               (state/getval [:start-index])
