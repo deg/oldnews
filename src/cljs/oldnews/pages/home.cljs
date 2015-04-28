@@ -101,6 +101,29 @@
                (handle-set-of-search-results search-string response))
              search-string)))
 
+(defn button [text id on-click]
+  [:button {:type "submit"
+            :class "btn btn-default"
+            :id id
+            :on-click on-click}
+   text])
+
+(defn radio [name default values-and-texts]
+  [:div (map (fn [[value text]]
+               (let [props {:type "radio" :name name :value value}]
+                 [:input
+                  (if (= value default) (assoc props :checked "checked") props)
+                  text]))
+             (partition 2 values-and-texts))])
+
+(defn select [name default values-and-texts]
+  [:select {:name name}
+   (map (fn [[value text]]
+          (let [props {:value value}]
+            [:option
+             (if (= value default) (assoc props :selected "selected") props)
+             text]))
+        (partition 2 values-and-texts))])
 
 (defn page []
   (fn []
@@ -113,12 +136,14 @@
        [:legend "Search for some good news"]
        [:label {:for :text1} "Enter text: "]
        [search-input :text1]
+       [button "Search now" :search launch-search]
        [:br]
-       [:button {:type "submit"
-                 :class "btn btn-default"
-                 :id :search
-                 :on-click launch-search}
-        "Search now"]]
+       [button "Prev page" :search launch-search]
+       [button "Next page" :search launch-search]
+       [:br]
+       [select "sort-order" :relevance
+        [:date "Date"
+         :relevance "Relevance"]]]
      ;;]
 
      (let [search-results (sget :results)]
