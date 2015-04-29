@@ -11,6 +11,14 @@
                  [com.cemerick/url "0.1.1"]
                  [ring-server "0.4.0"]
                  [json-html "0.2.8"]
+
+                 ;; Needed for json-html, because the latter includes cheshire 5.31,
+                 ;; causing production to fail (in 'foreman start') due to
+                 ;; com.fasterxml.jackson.dataformat.cbor.CBORFactory not found.
+                 ;; [TODO] This can go away when json-html is updated or when we stop
+                 ;; showing the debug page in production builds.
+                 [cheshire "5.4.0"]
+
                  [cljsjs/react "0.13.1-0"]
                  [reagent "0.5.0"]
                  [reagent-forms "0.5.0"]
